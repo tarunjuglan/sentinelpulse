@@ -1,0 +1,129 @@
+{
+  "ssh_bruteforce": {
+    "rule_id": "SP-SSH-001",
+    "name": "SSH Brute-Force Attempt",
+    "description": "Multiple failed SSH authentication attempts from a single source IP within a short time window.",
+    "severity": "HIGH",
+    "mitre_tactic": "Credential Access",
+    "mitre_technique": "T1110.001 - Brute Force: Password Guessing",
+    "threshold": 5,
+    "window_seconds": 300
+  },
+  "ssh_invalid_user_spray": {
+    "rule_id": "SP-SSH-002",
+    "name": "SSH Invalid Username Enumeration",
+    "description": "Repeated SSH login attempts targeting non-existent usernames (user spraying / dictionary attack).",
+    "severity": "MEDIUM",
+    "mitre_tactic": "Discovery",
+    "mitre_technique": "T1087 - Account Discovery",
+    "threshold": 4,
+    "window_seconds": 300
+  },
+  "ssh_root_login_attempt": {
+    "rule_id": "SP-SSH-003",
+    "name": "Direct Root SSH Login Attempt",
+    "description": "Authentication attempt targeting the privileged root account over SSH.",
+    "severity": "MEDIUM",
+    "mitre_tactic": "Privilege Escalation",
+    "mitre_technique": "T1078.003 - Valid Accounts: Local Accounts",
+    "threshold": 3,
+    "window_seconds": 600
+  },
+  "web_sqli_probe": {
+    "rule_id": "SP-WEB-001",
+    "name": "SQL Injection (SQLi) Probe Detected",
+    "description": "HTTP request URI or query string contains SQL injection payload signatures.",
+    "severity": "HIGH",
+    "mitre_tactic": "Initial Access",
+    "mitre_technique": "T1190 - Exploit Public-Facing Application",
+    "patterns": [
+      "union\\s+select",
+      "select\\s+.+\\s+from",
+      "or\\s+1\\s*=\\s*1",
+      "'\\s*or\\s*'1'='1",
+      "sleep\\(\\d+\\)",
+      "benchmark\\(",
+      "information_schema",
+      "--;",
+      "drop\\s+table"
+    ]
+  },
+  "web_xss_probe": {
+    "rule_id": "SP-WEB-002",
+    "name": "Cross-Site Scripting (XSS) Probe Detected",
+    "description": "HTTP request contains reflected or DOM-based XSS payload patterns.",
+    "severity": "MEDIUM",
+    "mitre_tactic": "Execution",
+    "mitre_technique": "T1059.007 - Command and Scripting Interpreter: JavaScript",
+    "patterns": [
+      "<script[^>]*>",
+      "javascript:",
+      "onerror\\s*=",
+      "onload\\s*=",
+      "document\\.cookie",
+      "alert\\s*\\("
+    ]
+  },
+  "web_path_traversal": {
+    "rule_id": "SP-WEB-003",
+    "name": "Path Traversal / LFI Attempt",
+    "description": "Request attempts directory traversal or local file inclusion targeting sensitive OS files.",
+    "severity": "HIGH",
+    "mitre_tactic": "Collection",
+    "mitre_technique": "T1005 - Data from Local System",
+    "patterns": [
+      "\\.\\./\\.\\.",
+      "%2e%2e%2f",
+      "/etc/passwd",
+      "/etc/shadow",
+      "win\\.ini",
+      "boot\\.ini"
+    ]
+  },
+  "web_sensitive_file_scan": {
+    "rule_id": "SP-WEB-004",
+    "name": "Sensitive File & Config Exposure Scan",
+    "description": "Automated probe targeting hidden configuration, backup, or source control files.",
+    "severity": "MEDIUM",
+    "mitre_tactic": "Reconnaissance",
+    "mitre_technique": "T1595.003 - Active Scanning: Wordlist Scanning",
+    "patterns": [
+      "/\\.env",
+      "/\\.git/",
+      "/wp-config\\.php",
+      "/phpinfo\\.php",
+      "/backup\\.sql",
+      "/admin/config",
+      "/actuator/env"
+    ]
+  },
+  "web_dir_bruteforce": {
+    "rule_id": "SP-WEB-005",
+    "name": "High-Rate 404 Directory Enumeration",
+    "description": "Rapid burst of HTTP 404 responses indicating automated scanner activity (e.g., Gobuster/Dirsearch).",
+    "severity": "MEDIUM",
+    "mitre_tactic": "Reconnaissance",
+    "mitre_technique": "T1595.002 - Active Scanning: Vulnerability Scanning",
+    "threshold": 8,
+    "window_seconds": 120
+  },
+  "web_scanner_ua": {
+    "rule_id": "SP-WEB-006",
+    "name": "Known Offensive Scanner User-Agent",
+    "description": "HTTP request originated from a known automated security scanner User-Agent string.",
+    "severity": "LOW",
+    "mitre_tactic": "Reconnaissance",
+    "mitre_technique": "T1595 - Active Scanning",
+    "patterns": [
+      "sqlmap",
+      "nikto",
+      "nmap",
+      "masscan",
+      "dirbuster",
+      "gobuster",
+      "wfuzz",
+      "nuclei",
+      "hydra"
+    ]
+  }
+}

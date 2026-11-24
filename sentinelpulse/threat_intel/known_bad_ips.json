@@ -1,0 +1,42 @@
+{
+  "185.220.101.42": {
+    "reputation": "MALICIOUS",
+    "confidence": 95,
+    "category": "Tor Exit Node / SSH Brute-Forcer",
+    "country": "DE",
+    "asn": "AS205100",
+    "tags": ["tor-exit", "ssh-bruteforce", "credential-stuffing"]
+  },
+  "45.155.205.9": {
+    "reputation": "MALICIOUS",
+    "confidence": 92,
+    "category": "Automated Web Vulnerability Scanner",
+    "country": "RU",
+    "asn": "AS49505",
+    "tags": ["sqli-scanner", "dir-enum", "botnet"]
+  },
+  "194.26.135.71": {
+    "reputation": "SUSPICIOUS",
+    "confidence": 78,
+    "category": "Bulletproof Hosting / Recon Scanner",
+    "country": "NL",
+    "asn": "AS202422",
+    "tags": ["recon", "masscan", "lfi-probe"]
+  },
+  "91.240.118.168": {
+    "reputation": "MALICIOUS",
+    "confidence": 89,
+    "category": "Known Credential Stuffing Infrastructure",
+    "country": "BG",
+    "asn": "AS209605",
+    "tags": ["ssh-spray", "password-guessing"]
+  },
+  "103.145.254.11": {
+    "reputation": "SUSPICIOUS",
+    "confidence": 70,
+    "category": "Exposed Proxy / Automated Crawler",
+    "country": "SG",
+    "asn": "AS139040",
+    "tags": ["xss-probe", "crawler"]
+  }
+}

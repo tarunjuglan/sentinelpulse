@@ -1,0 +1,17 @@
+Nov 24 14:10:05 prod-web-01 sshd[1021]: Accepted publickey for deploy from 10.0.1.15 port 51200 ssh2
+Nov 24 14:10:15 prod-web-01 systemd-logind[512]: New session 42 of user deploy.
+Nov 24 14:10:30 prod-web-01 sshd[1102]: Invalid user oracle from 185.220.101.42 port 40112
+Nov 24 14:10:34 prod-web-01 sshd[1103]: Invalid user postgres from 185.220.101.42 port 40118
+Nov 24 14:10:38 prod-web-01 sshd[1104]: Invalid user admin from 185.220.101.42 port 40125
+Nov 24 14:10:42 prod-web-01 sshd[1105]: Invalid user testuser from 185.220.101.42 port 40131
+Nov 24 14:10:48 prod-web-01 sshd[1106]: Failed password for root from 185.220.101.42 port 40140 ssh2
+Nov 24 14:10:52 prod-web-01 sshd[1107]: Failed password for root from 185.220.101.42 port 40145 ssh2
+Nov 24 14:10:56 prod-web-01 sshd[1108]: Failed password for root from 185.220.101.42 port 40152 ssh2
+Nov 24 14:11:00 prod-web-01 sshd[1109]: Failed password for deploy from 185.220.101.42 port 40160 ssh2
+Nov 24 14:11:05 prod-web-01 sshd[1110]: Accepted password for deploy from 185.220.101.42 port 40177 ssh2
+Nov 24 14:12:00 prod-web-01 sshd[1201]: Failed password for ubuntu from 91.240.118.168 port 53210 ssh2
+Nov 24 14:12:04 prod-web-01 sshd[1202]: Failed password for ubuntu from 91.240.118.168 port 53215 ssh2
+Nov 24 14:12:08 prod-web-01 sshd[1203]: Failed password for ubuntu from 91.240.118.168 port 53220 ssh2
+Nov 24 14:12:12 prod-web-01 sshd[1204]: Failed password for ubuntu from 91.240.118.168 port 53225 ssh2
+Nov 24 14:12:16 prod-web-01 sshd[1205]: Failed password for ubuntu from 91.240.118.168 port 53230 ssh2
+Nov 24 14:13:20 prod-web-01 sshd[1300]: Accepted publickey for alice from 10.0.1.22 port 49152 ssh2

@@ -1,0 +1,421 @@
+{
+  "tool": "SentinelPulse",
+  "generated_at": "2026-11-24 23:25:09",
+  "metrics": {
+    "total_events_parsed": 34,
+    "total_alerts": 13,
+    "total_incidents": 5,
+    "critical_incidents": 1
+  },
+  "incidents": [
+    {
+      "incident_id": "INC-001",
+      "title": "CRITICAL Compromise Chain from 185.220.101.42",
+      "severity": "CRITICAL",
+      "risk_score": 100,
+      "src_ip": "185.220.101.42",
+      "kill_chain_stages": [
+        "Account Compromise",
+        "Credential Access",
+        "Reconnaissance",
+        "Privilege Escalation"
+      ],
+      "mitre_techniques": [
+        "T1078 - Valid Accounts",
+        "T1078.003 - Valid Accounts: Local Accounts",
+        "T1087 - Account Discovery",
+        "T1110.001 - Brute Force: Password Guessing",
+        "T1595.003 - Active Scanning: Wordlist Scanning"
+      ],
+      "threat_intel": {
+        "reputation": "MALICIOUS",
+        "confidence": 95,
+        "category": "Tor Exit Node / SSH Brute-Forcer",
+        "country": "DE",
+        "asn": "AS205100",
+        "tags": [
+          "tor-exit",
+          "ssh-bruteforce",
+          "credential-stuffing"
+        ]
+      },
+      "first_seen": "2026-11-24T14:10:30",
+      "last_seen": "2026-11-24T14:12:40",
+      "recommended_actions": [
+        "ESCALATE IMMEDIATELY (P1): Confirmed SSH login after brute-force from 185.220.101.42. Treat target account as compromised.",
+        "Terminate active SSH sessions for the affected user and rotate SSH keys/passwords.",
+        "Audit recent sudo history (~/.bash_history, /var/log/syslog) for persistence or lateral movement.",
+        "Block external offending IP 185.220.101.42 at host firewall / perimeter WAF.",
+        "Harden SSH: disable password authentication, enforce key-only login, and enable Fail2Ban.",
+        "Confirm .env, .git, and backup files are blocked at Nginx/Apache level (return 404/403)."
+      ],
+      "containment_commands": [
+        "sudo pkill -KILL -u <compromised_user>  # Terminate active user sessions",
+        "sudo passwd -l <compromised_user>       # Lock potentially compromised account",
+        "sudo ufw deny from 185.220.101.42 to any comment 'SentinelPulse block'",
+        "sudo iptables -I INPUT -s 185.220.101.42 -j DROP",
+        "sudo fail2ban-client set sshd banip 185.220.101.42"
+      ],
+      "alerts": [
+        {
+          "alert_id": "ALT-0005",
+          "rule_id": "SP-CORR-001",
+          "title": "Possible Account Compromise: SSH Success After Brute-Force",
+          "severity": "CRITICAL",
+          "source": "ssh",
+          "mitre_tactic": "Initial Access",
+          "mitre_technique": "T1078 - Valid Accounts",
+          "event_count": 9,
+          "evidence": [
+            "L8: Nov 24 14:10:52 prod-web-01 sshd[1107]: Failed password for root from 185.220.101.42 port 40145 ssh2",
+            "L9: Nov 24 14:10:56 prod-web-01 sshd[1108]: Failed password for root from 185.220.101.42 port 40152 ssh2",
+            "L10: Nov 24 14:11:00 prod-web-01 sshd[1109]: Failed password for deploy from 185.220.101.42 port 40160 ssh2",
+            "L11: Nov 24 14:11:05 prod-web-01 sshd[1110]: Accepted password for deploy from 185.220.101.42 port 40177 ssh2"
+          ]
+        },
+        {
+          "alert_id": "ALT-0001",
+          "rule_id": "SP-SSH-001",
+          "title": "SSH Brute-Force Attempt",
+          "severity": "HIGH",
+          "source": "ssh",
+          "mitre_tactic": "Credential Access",
+          "mitre_technique": "T1110.001 - Brute Force: Password Guessing",
+          "event_count": 8,
+          "evidence": [
+            "L3: Nov 24 14:10:30 prod-web-01 sshd[1102]: Invalid user oracle from 185.220.101.42 port 40112",
+            "L4: Nov 24 14:10:34 prod-web-01 sshd[1103]: Invalid user postgres from 185.220.101.42 port 40118",
+            "L5: Nov 24 14:10:38 prod-web-01 sshd[1104]: Invalid user admin from 185.220.101.42 port 40125",
+            "L6: Nov 24 14:10:42 prod-web-01 sshd[1105]: Invalid user testuser from 185.220.101.42 port 40131",
+            "L7: Nov 24 14:10:48 prod-web-01 sshd[1106]: Failed password for root from 185.220.101.42 port 40140 ssh2"
+          ]
+        },
+        {
+          "alert_id": "ALT-0003",
+          "rule_id": "SP-SSH-002",
+          "title": "SSH Invalid Username Enumeration",
+          "severity": "MEDIUM",
+          "source": "ssh",
+          "mitre_tactic": "Discovery",
+          "mitre_technique": "T1087 - Account Discovery",
+          "event_count": 4,
+          "evidence": [
+            "L3: Nov 24 14:10:30 prod-web-01 sshd[1102]: Invalid user oracle from 185.220.101.42 port 40112",
+            "L4: Nov 24 14:10:34 prod-web-01 sshd[1103]: Invalid user postgres from 185.220.101.42 port 40118",
+            "L5: Nov 24 14:10:38 prod-web-01 sshd[1104]: Invalid user admin from 185.220.101.42 port 40125",
+            "L6: Nov 24 14:10:42 prod-web-01 sshd[1105]: Invalid user testuser from 185.220.101.42 port 40131"
+          ]
+        },
+        {
+          "alert_id": "ALT-0004",
+          "rule_id": "SP-SSH-003",
+          "title": "Direct Root SSH Login Attempt",
+          "severity": "MEDIUM",
+          "source": "ssh",
+          "mitre_tactic": "Privilege Escalation",
+          "mitre_technique": "T1078.003 - Valid Accounts: Local Accounts",
+          "event_count": 3,
+          "evidence": [
+            "L7: Nov 24 14:10:48 prod-web-01 sshd[1106]: Failed password for root from 185.220.101.42 port 40140 ssh2",
+            "L8: Nov 24 14:10:52 prod-web-01 sshd[1107]: Failed password for root from 185.220.101.42 port 40145 ssh2",
+            "L9: Nov 24 14:10:56 prod-web-01 sshd[1108]: Failed password for root from 185.220.101.42 port 40152 ssh2"
+          ]
+        },
+        {
+          "alert_id": "ALT-0011",
+          "rule_id": "SP-WEB-004",
+          "title": "Sensitive File & Config Exposure Scan",
+          "severity": "MEDIUM",
+          "source": "web",
+          "mitre_tactic": "Reconnaissance",
+          "mitre_technique": "T1595.003 - Active Scanning: Wordlist Scanning",
+          "event_count": 1,
+          "evidence": [
+            "L18: 185.220.101.42 - - [24/Nov/2026:14:12:40 +0000] \"GET /admin/config HTTP/1.1\" 404 162 \"-\" \"curl/8.0\""
+          ]
+        }
+      ]
+    },
+    {
+      "incident_id": "INC-002",
+      "title": "Multi-Vector Attack (4 Rules Triggered) from 45.155.205.9",
+      "severity": "HIGH",
+      "risk_score": 92,
+      "src_ip": "45.155.205.9",
+      "kill_chain_stages": [
+        "Reconnaissance",
+        "Exploitation / Initial Access"
+      ],
+      "mitre_techniques": [
+        "T1190 - Exploit Public-Facing Application",
+        "T1595 - Active Scanning",
+        "T1595.002 - Active Scanning: Vulnerability Scanning",
+        "T1595.003 - Active Scanning: Wordlist Scanning"
+      ],
+      "threat_intel": {
+        "reputation": "MALICIOUS",
+        "confidence": 92,
+        "category": "Automated Web Vulnerability Scanner",
+        "country": "RU",
+        "asn": "AS49505",
+        "tags": [
+          "sqli-scanner",
+          "dir-enum",
+          "botnet"
+        ]
+      },
+      "first_seen": "2026-11-24T14:10:40",
+      "last_seen": "2026-11-24T14:11:08",
+      "recommended_actions": [
+        "Block external offending IP 45.155.205.9 at host firewall / perimeter WAF.",
+        "Review WAF/reverse-proxy logs for HTTP 200/500 responses on injection/LFI payloads.",
+        "Verify parameterized queries (SQLi) and strict path sanitization (LFI) in application code.",
+        "Confirm .env, .git, and backup files are blocked at Nginx/Apache level (return 404/403)."
+      ],
+      "containment_commands": [
+        "sudo ufw deny from 45.155.205.9 to any comment 'SentinelPulse block'",
+        "sudo iptables -I INPUT -s 45.155.205.9 -j DROP"
+      ],
+      "alerts": [
+        {
+          "alert_id": "ALT-0007",
+          "rule_id": "SP-WEB-001",
+          "title": "SQL Injection (SQLi) Probe Detected",
+          "severity": "HIGH",
+          "source": "web",
+          "mitre_tactic": "Initial Access",
+          "mitre_technique": "T1190 - Exploit Public-Facing Application",
+          "event_count": 2,
+          "evidence": [
+            "L12: 45.155.205.9 - - [24/Nov/2026:14:11:05 +0000] \"GET /products?id=1%20UNION%20SELECT%20username,password%20FROM%20users HTTP/1.1\" 500 512 \"-\" \"sqlmap/1.8\"",
+            "L13: 45.155.205.9 - - [24/Nov/2026:14:11:08 +0000] \"GET /products?id=1'%20OR%20'1'='1 HTTP/1.1\" 200 2840 \"-\" \"sqlmap/1.8\""
+          ]
+        },
+        {
+          "alert_id": "ALT-0006",
+          "rule_id": "SP-WEB-005",
+          "title": "High-Rate 404 Directory Enumeration",
+          "severity": "MEDIUM",
+          "source": "web",
+          "mitre_tactic": "Reconnaissance",
+          "mitre_technique": "T1595.002 - Active Scanning: Vulnerability Scanning",
+          "event_count": 8,
+          "evidence": [
+            "L4: 45.155.205.9 - - [24/Nov/2026:14:10:40 +0000] \"GET /.env HTTP/1.1\" 404 162 \"-\" \"Mozilla/5.0\"",
+            "L5: 45.155.205.9 - - [24/Nov/2026:14:10:42 +0000] \"GET /.git/config HTTP/1.1\" 404 162 \"-\" \"Gobuster/3.6\"",
+            "L6: 45.155.205.9 - - [24/Nov/2026:14:10:44 +0000] \"GET /backup.sql HTTP/1.1\" 404 162 \"-\" \"Gobuster/3.6\"",
+            "L7: 45.155.205.9 - - [24/Nov/2026:14:10:46 +0000] \"GET /phpinfo.php HTTP/1.1\" 404 162 \"-\" \"Gobuster/3.6\"",
+            "L8: 45.155.205.9 - - [24/Nov/2026:14:10:48 +0000] \"GET /admin/config.php HTTP/1.1\" 404 162 \"-\" \"Gobuster/3.6\""
+          ]
+        },
+        {
+          "alert_id": "ALT-0010",
+          "rule_id": "SP-WEB-004",
+          "title": "Sensitive File & Config Exposure Scan",
+          "severity": "MEDIUM",
+          "source": "web",
+          "mitre_tactic": "Reconnaissance",
+          "mitre_technique": "T1595.003 - Active Scanning: Wordlist Scanning",
+          "event_count": 6,
+          "evidence": [
+            "L4: 45.155.205.9 - - [24/Nov/2026:14:10:40 +0000] \"GET /.env HTTP/1.1\" 404 162 \"-\" \"Mozilla/5.0\"",
+            "L5: 45.155.205.9 - - [24/Nov/2026:14:10:42 +0000] \"GET /.git/config HTTP/1.1\" 404 162 \"-\" \"Gobuster/3.6\"",
+            "L6: 45.155.205.9 - - [24/Nov/2026:14:10:44 +0000] \"GET /backup.sql HTTP/1.1\" 404 162 \"-\" \"Gobuster/3.6\"",
+            "L7: 45.155.205.9 - - [24/Nov/2026:14:10:46 +0000] \"GET /phpinfo.php HTTP/1.1\" 404 162 \"-\" \"Gobuster/3.6\"",
+            "L8: 45.155.205.9 - - [24/Nov/2026:14:10:48 +0000] \"GET /admin/config.php HTTP/1.1\" 404 162 \"-\" \"Gobuster/3.6\""
+          ]
+        },
+        {
+          "alert_id": "ALT-0012",
+          "rule_id": "SP-WEB-006",
+          "title": "Known Offensive Scanner User-Agent",
+          "severity": "LOW",
+          "source": "web",
+          "mitre_tactic": "Reconnaissance",
+          "mitre_technique": "T1595 - Active Scanning",
+          "event_count": 9,
+          "evidence": [
+            "L5: 45.155.205.9 - - [24/Nov/2026:14:10:42 +0000] \"GET /.git/config HTTP/1.1\" 404 162 \"-\" \"Gobuster/3.6\"",
+            "L6: 45.155.205.9 - - [24/Nov/2026:14:10:44 +0000] \"GET /backup.sql HTTP/1.1\" 404 162 \"-\" \"Gobuster/3.6\"",
+            "L7: 45.155.205.9 - - [24/Nov/2026:14:10:46 +0000] \"GET /phpinfo.php HTTP/1.1\" 404 162 \"-\" \"Gobuster/3.6\"",
+            "L8: 45.155.205.9 - - [24/Nov/2026:14:10:48 +0000] \"GET /admin/config.php HTTP/1.1\" 404 162 \"-\" \"Gobuster/3.6\"",
+            "L9: 45.155.205.9 - - [24/Nov/2026:14:10:50 +0000] \"GET /wp-login.php HTTP/1.1\" 404 162 \"-\" \"Gobuster/3.6\""
+          ]
+        }
+      ]
+    },
+    {
+      "incident_id": "INC-003",
+      "title": "Multi-Vector Attack (2 Rules Triggered) from 194.26.135.71",
+      "severity": "HIGH",
+      "risk_score": 52,
+      "src_ip": "194.26.135.71",
+      "kill_chain_stages": [
+        "Exploitation / Collection",
+        "Reconnaissance"
+      ],
+      "mitre_techniques": [
+        "T1005 - Data from Local System",
+        "T1595 - Active Scanning"
+      ],
+      "threat_intel": {
+        "reputation": "SUSPICIOUS",
+        "confidence": 78,
+        "category": "Bulletproof Hosting / Recon Scanner",
+        "country": "NL",
+        "asn": "AS202422",
+        "tags": [
+          "recon",
+          "masscan",
+          "lfi-probe"
+        ]
+      },
+      "first_seen": "2026-11-24T14:11:35",
+      "last_seen": "2026-11-24T14:11:38",
+      "recommended_actions": [
+        "Block external offending IP 194.26.135.71 at host firewall / perimeter WAF.",
+        "Review WAF/reverse-proxy logs for HTTP 200/500 responses on injection/LFI payloads.",
+        "Verify parameterized queries (SQLi) and strict path sanitization (LFI) in application code."
+      ],
+      "containment_commands": [
+        "sudo ufw deny from 194.26.135.71 to any comment 'SentinelPulse block'",
+        "sudo iptables -I INPUT -s 194.26.135.71 -j DROP"
+      ],
+      "alerts": [
+        {
+          "alert_id": "ALT-0009",
+          "rule_id": "SP-WEB-003",
+          "title": "Path Traversal / LFI Attempt",
+          "severity": "HIGH",
+          "source": "web",
+          "mitre_tactic": "Collection",
+          "mitre_technique": "T1005 - Data from Local System",
+          "event_count": 2,
+          "evidence": [
+            "L14: 194.26.135.71 - - [24/Nov/2026:14:11:35 +0000] \"GET /download?file=../../../../etc/passwd HTTP/1.1\" 403 210 \"-\" \"Nuclei - Open-source project\"",
+            "L15: 194.26.135.71 - - [24/Nov/2026:14:11:38 +0000] \"GET /view?tpl=%2e%2e%2f%2e%2e%2fetc/shadow HTTP/1.1\" 403 210 \"-\" \"Nuclei - Open-source project\""
+          ]
+        },
+        {
+          "alert_id": "ALT-0013",
+          "rule_id": "SP-WEB-006",
+          "title": "Known Offensive Scanner User-Agent",
+          "severity": "LOW",
+          "source": "web",
+          "mitre_tactic": "Reconnaissance",
+          "mitre_technique": "T1595 - Active Scanning",
+          "event_count": 2,
+          "evidence": [
+            "L14: 194.26.135.71 - - [24/Nov/2026:14:11:35 +0000] \"GET /download?file=../../../../etc/passwd HTTP/1.1\" 403 210 \"-\" \"Nuclei - Open-source project\"",
+            "L15: 194.26.135.71 - - [24/Nov/2026:14:11:38 +0000] \"GET /view?tpl=%2e%2e%2f%2e%2e%2fetc/shadow HTTP/1.1\" 403 210 \"-\" \"Nuclei - Open-source project\""
+          ]
+        }
+      ]
+    },
+    {
+      "incident_id": "INC-004",
+      "title": "SSH Brute-Force Attempt (91.240.118.168)",
+      "severity": "HIGH",
+      "risk_score": 45,
+      "src_ip": "91.240.118.168",
+      "kill_chain_stages": [
+        "Credential Access"
+      ],
+      "mitre_techniques": [
+        "T1110.001 - Brute Force: Password Guessing"
+      ],
+      "threat_intel": {
+        "reputation": "MALICIOUS",
+        "confidence": 89,
+        "category": "Known Credential Stuffing Infrastructure",
+        "country": "BG",
+        "asn": "AS209605",
+        "tags": [
+          "ssh-spray",
+          "password-guessing"
+        ]
+      },
+      "first_seen": "2026-11-24T14:12:00",
+      "last_seen": "2026-11-24T14:12:16",
+      "recommended_actions": [
+        "Block external offending IP 91.240.118.168 at host firewall / perimeter WAF.",
+        "Harden SSH: disable password authentication, enforce key-only login, and enable Fail2Ban."
+      ],
+      "containment_commands": [
+        "sudo ufw deny from 91.240.118.168 to any comment 'SentinelPulse block'",
+        "sudo iptables -I INPUT -s 91.240.118.168 -j DROP",
+        "sudo fail2ban-client set sshd banip 91.240.118.168"
+      ],
+      "alerts": [
+        {
+          "alert_id": "ALT-0002",
+          "rule_id": "SP-SSH-001",
+          "title": "SSH Brute-Force Attempt",
+          "severity": "HIGH",
+          "source": "ssh",
+          "mitre_tactic": "Credential Access",
+          "mitre_technique": "T1110.001 - Brute Force: Password Guessing",
+          "event_count": 5,
+          "evidence": [
+            "L12: Nov 24 14:12:00 prod-web-01 sshd[1201]: Failed password for ubuntu from 91.240.118.168 port 53210 ssh2",
+            "L13: Nov 24 14:12:04 prod-web-01 sshd[1202]: Failed password for ubuntu from 91.240.118.168 port 53215 ssh2",
+            "L14: Nov 24 14:12:08 prod-web-01 sshd[1203]: Failed password for ubuntu from 91.240.118.168 port 53220 ssh2",
+            "L15: Nov 24 14:12:12 prod-web-01 sshd[1204]: Failed password for ubuntu from 91.240.118.168 port 53225 ssh2",
+            "L16: Nov 24 14:12:16 prod-web-01 sshd[1205]: Failed password for ubuntu from 91.240.118.168 port 53230 ssh2"
+          ]
+        }
+      ]
+    },
+    {
+      "incident_id": "INC-005",
+      "title": "Cross-Site Scripting (XSS) Probe Detected (103.145.254.11)",
+      "severity": "MEDIUM",
+      "risk_score": 25,
+      "src_ip": "103.145.254.11",
+      "kill_chain_stages": [
+        "Exploitation / Execution"
+      ],
+      "mitre_techniques": [
+        "T1059.007 - Command and Scripting Interpreter: JavaScript"
+      ],
+      "threat_intel": {
+        "reputation": "SUSPICIOUS",
+        "confidence": 70,
+        "category": "Exposed Proxy / Automated Crawler",
+        "country": "SG",
+        "asn": "AS139040",
+        "tags": [
+          "xss-probe",
+          "crawler"
+        ]
+      },
+      "first_seen": "2026-11-24T14:12:20",
+      "last_seen": "2026-11-24T14:12:25",
+      "recommended_actions": [
+        "Block external offending IP 103.145.254.11 at host firewall / perimeter WAF.",
+        "Review WAF/reverse-proxy logs for HTTP 200/500 responses on injection/LFI payloads.",
+        "Verify parameterized queries (SQLi) and strict path sanitization (LFI) in application code."
+      ],
+      "containment_commands": [
+        "sudo ufw deny from 103.145.254.11 to any comment 'SentinelPulse block'",
+        "sudo iptables -I INPUT -s 103.145.254.11 -j DROP"
+      ],
+      "alerts": [
+        {
+          "alert_id": "ALT-0008",
+          "rule_id": "SP-WEB-002",
+          "title": "Cross-Site Scripting (XSS) Probe Detected",
+          "severity": "MEDIUM",
+          "source": "web",
+          "mitre_tactic": "Execution",
+          "mitre_technique": "T1059.007 - Command and Scripting Interpreter: JavaScript",
+          "event_count": 2,
+          "evidence": [
+            "L16: 103.145.254.11 - - [24/Nov/2026:14:12:20 +0000] \"GET /search?q=<script>alert(document.cookie)</script> HTTP/1.1\" 200 1420 \"-\" \"Mozilla/5.0\"",
+            "L17: 103.145.254.11 - - [24/Nov/2026:14:12:25 +0000] \"GET /profile?bio=<img%20src=x%20onerror=alert(1)> HTTP/1.1\" 200 1420 \"-\" \"Mozilla/5.0\""
+          ]
+        }
+      ]
+    }
+  ]
+}

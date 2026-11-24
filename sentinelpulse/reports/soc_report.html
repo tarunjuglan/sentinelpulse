@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SentinelPulse — SOC Incident Triage Dashboard</title>
+  <style>
+    :root {
+      --bg: #0b1120;
+      --panel: #111827;
+      --panel-alt: #1e293b;
+      --border: #334155;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --critical: #ef4444;
+      --high: #f97316;
+      --medium: #eab308;
+      --low: #38bdf8;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .container { max-width: 1180px; margin: 0 auto; padding: 28px 20px 60px; }
+    header {
+      display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;
+      border-bottom: 1px solid var(--border); padding-bottom: 18px; margin-bottom: 24px;
+    }
+    h1 { margin: 0; font-size: 1.7rem; letter-spacing: 0.3px; }
+    h1 span { color: var(--accent); }
+    .subtitle { color: var(--muted); font-size: 0.92rem; margin-top: 4px; }
+    .kpi-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px; margin-bottom: 22px;
+    }
+    .kpi {
+      background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+      padding: 16px;
+    }
+    .kpi-val { font-size: 1.8rem; font-weight: 700; }
+    .kpi-lbl { color: var(--muted); font-size: 0.85rem; }
+    .split-grid {
+      display: grid; grid-template-columns: 1fr 1.4fr; gap: 16px; margin-bottom: 24px;
+    }
+    @media (max-width: 820px) { .split-grid { grid-template-columns: 1fr; } }
+    .panel {
+      background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 18px;
+    }
+    .panel h2 { margin: 0 0 12px; font-size: 1.05rem; color: var(--accent); }
+    .bar-row { display: flex; align-items: center; gap: 10px; margin: 8px 0; font-size: 0.85rem; }
+    .bar-label { width: 76px; font-weight: 600; }
+    .bar-track { flex: 1; height: 10px; background: var(--panel-alt); border-radius: 99px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 99px; }
+    .bar-val { width: 28px; text-align: right; color: var(--muted); }
+    .pill {
+      display: inline-block; background: var(--panel-alt); border: 1px solid var(--border);
+      padding: 4px 10px; border-radius: 999px; font-size: 0.8rem; margin: 4px 4px 0 0;
+    }
+    .toolbar {
+      display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 18px;
+    }
+    .toolbar input, .toolbar select {
+      background: var(--panel); color: var(--text); border: 1px solid var(--border);
+      border-radius: 8px; padding: 9px 12px; font-size: 0.9rem;
+    }
+    .toolbar input { flex: 1; min-width: 220px; }
+    .incident-card {
+      background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+      padding: 20px; margin-bottom: 16px;
+    }
+    .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+    .inc-id { color: var(--muted); font-family: monospace; margin-left: 8px; font-size: 0.9rem; }
+    .inc-title { margin: 8px 0 4px; font-size: 1.15rem; }
+    .inc-summary { color: var(--muted); margin: 6px 0 14px; font-size: 0.93rem; }
+    .risk-box {
+      background: var(--panel-alt); border: 1px solid var(--border); border-radius: 10px;
+      padding: 8px 14px; text-align: center; min-width: 90px;
+    }
+    .risk-num { display: block; font-size: 1.45rem; font-weight: 800; color: var(--accent); }
+    .risk-label { font-size: 0.7rem; color: var(--muted); letter-spacing: 0.5px; }
+    .badge {
+      display: inline-block; padding: 3px 9px; border-radius: 6px; font-size: 0.75rem;
+      font-weight: 700; letter-spacing: 0.4px;
+    }
+    .badge-critical { background: rgba(239,68,68,.2); color: #fca5a5; border: 1px solid var(--critical); }
+    .badge-high { background: rgba(249,115,22,.2); color: #fdba74; border: 1px solid var(--high); }
+    .badge-medium { background: rgba(234,179,8,.18); color: #fde047; border: 1px solid var(--medium); }
+    .badge-low { background: rgba(56,189,248,.18); color: #7dd3fc; border: 1px solid var(--low); }
+    .meta-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 8px; font-size: 0.88rem; background: var(--panel-alt); padding: 12px;
+      border-radius: 8px; margin-bottom: 12px;
+    }
+    .kill-chain { margin: 10px 0; font-size: 0.88rem; }
+    .stage-chip {
+      display: inline-block; background: rgba(56,189,248,.14); color: #bae6fd;
+      border: 1px solid rgba(56,189,248,.4); padding: 2px 8px; border-radius: 6px; font-size: 0.8rem;
+    }
+    .intel-tags { margin-bottom: 12px; }
+    .tag-chip {
+      display: inline-block; background: #1f2937; color: #cbd5e1; border: 1px solid #374151;
+      padding: 2px 8px; border-radius: 99px; font-size: 0.76rem; margin-right: 6px;
+    }
+    details { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px; }
+    summary { cursor: pointer; font-weight: 600; color: var(--accent); font-size: 0.92rem; }
+    .alert-item {
+      background: #0f172a; border: 1px solid #1e293b; border-radius: 8px;
+      padding: 12px; margin-top: 10px;
+    }
+    .alert-head { font-size: 0.9rem; }
+    .alert-desc { margin: 6px 0; font-size: 0.85rem; color: var(--muted); }
+    pre.evidence, pre.commands {
+      background: #020617; color: #cbd5e1; padding: 10px; border-radius: 6px;
+      overflow-x: auto; font-size: 0.78rem; margin: 8px 0 0; border: 1px solid #1e293b;
+    }
+    .playbook-box ul { margin: 8px 0 10px 18px; font-size: 0.88rem; }
+    .muted { color: var(--muted); font-size: 0.82rem; }
+    code { background: #0f172a; padding: 2px 6px; border-radius: 4px; }
+    .empty-state { text-align: center; padding: 40px; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <h1>Sentinel<span>Pulse</span> SOC Dashboard</h1>
+        <div class="subtitle">Multi-Source Log Correlation &bull; MITRE ATT&amp;CK Mapping &bull; Automated Triage</div>
+      </div>
+      <div class="subtitle">Generated: 2026-11-24 23:25:09</div>
+    </header>
+
+    <section class="kpi-grid">
+      <div class="kpi"><div class="kpi-val">34</div><div class="kpi-lbl">Events Parsed (SSH: 16, Web: 18)</div></div>
+      <div class="kpi"><div class="kpi-val">13</div><div class="kpi-lbl">Rule Alerts Triggered</div></div>
+      <div class="kpi"><div class="kpi-val">5</div><div class="kpi-lbl">Correlated Incidents</div></div>
+      <div class="kpi"><div class="kpi-val" style="color:var(--critical);">1</div><div class="kpi-lbl">Critical Escalations</div></div>
+      <div class="kpi"><div class="kpi-val">1</div><div class="kpi-lbl">Non-Matching / Noise Lines</div></div>
+    </section>
+
+    <section class="split-grid">
+      <div class="panel">
+        <h2>Incident Severity Breakdown</h2>
+        
+        <div class="bar-row">
+          <span class="bar-label">CRITICAL</span>
+          <div class="bar-track"><div class="bar-fill" style="width:20%;background:#ef4444;"></div></div>
+          <span class="bar-val">1</span>
+        </div>
+        <div class="bar-row">
+          <span class="bar-label">HIGH</span>
+          <div class="bar-track"><div class="bar-fill" style="width:60%;background:#f97316;"></div></div>
+          <span class="bar-val">3</span>
+        </div>
+        <div class="bar-row">
+          <span class="bar-label">MEDIUM</span>
+          <div class="bar-track"><div class="bar-fill" style="width:20%;background:#eab308;"></div></div>
+          <span class="bar-val">1</span>
+        </div>
+        <div class="bar-row">
+          <span class="bar-label">LOW</span>
+          <div class="bar-track"><div class="bar-fill" style="width:0%;background:#38bdf8;"></div></div>
+          <span class="bar-val">0</span>
+        </div>
+      </div>
+      <div class="panel">
+        <h2>MITRE ATT&amp;CK Techniques Observed</h2>
+        <span class="pill">T1110.001 - Brute Force: Password Guessing <strong>(2)</strong></span><span class="pill">T1595.003 - Active Scanning: Wordlist Scanning <strong>(2)</strong></span><span class="pill">T1595 - Active Scanning <strong>(2)</strong></span><span class="pill">T1078 - Valid Accounts <strong>(1)</strong></span><span class="pill">T1078.003 - Valid Accounts: Local Accounts <strong>(1)</strong></span><span class="pill">T1087 - Account Discovery <strong>(1)</strong></span><span class="pill">T1190 - Exploit Public-Facing Application <strong>(1)</strong></span><span class="pill">T1595.002 - Active Scanning: Vulnerability Scanning <strong>(1)</strong></span><span class="pill">T1005 - Data from Local System <strong>(1)</strong></span><span class="pill">T1059.007 - Command and Scripting Interpreter: JavaScript <strong>(1)</strong></span>
+      </div>
+    </section>
+
+    <section class="toolbar">
+      <input type="text" id="searchInput" placeholder="Filter by IP address, rule title, or MITRE ID..." oninput="filterIncidents()" />
+      <select id="sevFilter" onchange="filterIncidents()">
+        <option value="ALL">All Severities</option>
+        <option value="CRITICAL">CRITICAL</option>
+        <option value="HIGH">HIGH</option>
+        <option value="MEDIUM">MEDIUM</option>
+        <option value="LOW">LOW</option>
+      </select>
+    </section>
+
+    <section id="incidentList">
+      
+        <article class="incident-card" data-severity="CRITICAL" data-search="185.220.101.42 critical compromise chain from 185.220.101.42 t1078 - valid accounts t1078.003 - valid accounts: local accounts t1087 - account discovery t1110.001 - brute force: password guessing t1595.003 - active scanning: wordlist scanning">
+          <div class="card-top">
+            <div>
+              <span class="badge badge-critical">CRITICAL</span>
+              <span class="inc-id">INC-001</span>
+              <h3 class="inc-title">CRITICAL Compromise Chain from 185.220.101.42</h3>
+            </div>
+            <div class="risk-box">
+              <span class="risk-num">100</span>
+              <span class="risk-label">RISK / 100</span>
+            </div>
+          </div>
+
+          <p class="inc-summary">Detected 5 alert(s) across 4 kill-chain stage(s) (Account Compromise, Credential Access, Reconnaissance, Privilege Escalation). Threat Intel: MALICIOUS (Tor Exit Node / SSH Brute-Forcer).</p>
+
+          <div class="meta-grid">
+            <div><strong>Source IP:</strong> <code>185.220.101.42</code></div>
+            <div><strong>Intel:</strong> MALICIOUS (95% conf) &bull; DE / AS205100</div>
+            <div><strong>Timeframe:</strong> 2026-11-24 14:10:30 &ndash; 14:12:40</div>
+            <div><strong>Alerts Triggered:</strong> 5</div>
+          </div>
+
+          <div class="kill-chain"><strong>Kill Chain:</strong> <span class="stage-chip">Account Compromise</span> &rarr; <span class="stage-chip">Credential Access</span> &rarr; <span class="stage-chip">Reconnaissance</span> &rarr; <span class="stage-chip">Privilege Escalation</span></div>
+          <div class="intel-tags"><span class="tag-chip">tor-exit</span> <span class="tag-chip">ssh-bruteforce</span> <span class="tag-chip">credential-stuffing</span></div>
+
+          <details open>
+            <summary>Triggered Rules &amp; Log Evidence (5)</summary>
+            
+            <div class="alert-item">
+              <div class="alert-head">
+                <span class="badge badge-critical">CRITICAL</span>
+                <strong>SP-CORR-001</strong> &mdash; Possible Account Compromise: SSH Success After Brute-Force
+                <span class="muted">(SSH &bull; 9 event(s) &bull; T1078 - Valid Accounts)</span>
+              </div>
+              <p class="alert-desc">IP 185.220.101.42 succeeded in authenticating as &#x27;deploy&#x27; after 8 prior failed attempts.</p>
+              <pre class="evidence">L8: Nov 24 14:10:52 prod-web-01 sshd[1107]: Failed password for root from 185.220.101.42 port 40145 ssh2
+L9: Nov 24 14:10:56 prod-web-01 sshd[1108]: Failed password for root from 185.220.101.42 port 40152 ssh2
+L10: Nov 24 14:11:00 prod-web-01 sshd[1109]: Failed password for deploy from 185.220.101.42 port 40160 ssh2
+L11: Nov 24 14:11:05 prod-web-01 sshd[1110]: Accepted password for deploy from 185.220.101.42 port 40177 ssh2</pre>
+            </div>
+            <div class="alert-item">
+              <div class="alert-head">
+                <span class="badge badge-high">HIGH</span>
+                <strong>SP-SSH-001</strong> &mdash; SSH Brute-Force Attempt
+                <span class="muted">(SSH &bull; 8 event(s) &bull; T1110.001 - Brute Force: Password Guessing)</span>
+              </div>
+              <p class="alert-desc">Multiple failed SSH authentication attempts from a single source IP within a short time window.</p>
+              <pre class="evidence">L3: Nov 24 14:10:30 prod-web-01 sshd[1102]: Invalid user oracle from 185.220.101.42 port 40112
+L4: Nov 24 14:10:34 prod-web-01 sshd[1103]: Invalid user postgres from 185.220.101.42 port 40118
+L5: Nov 24 14:10:38 prod-web-01 sshd[1104]: Invalid user admin from 185.220.101.42 port 40125
+L6: Nov 24 14:10:42 prod-web-01 sshd[1105]: Invalid user testuser from 185.220.101.42 port 40131
+L7: Nov 24 14:10:48 prod-web-01 sshd[1106]: Failed password for root from 185.220.101.42 port 40140 ssh2</pre>
+            </div>
+            <div class="alert-item">
+              <div class="alert-head">
+                <span class="badge badge-medium">MEDIUM</span>
+                <strong>SP-SSH-002</strong> &mdash; SSH Invalid Username Enumeration
+                <span class="muted">(SSH &bull; 4 event(s) &bull; T1087 - Account Discovery)</span>
+              </div>
+              <p class="alert-desc">Repeated SSH login attempts targeting non-existent usernames (user spraying / dictionary attack).</p>
+              <pre class="evidence">L3: Nov 24 14:10:30 prod-web-01 sshd[1102]: Invalid user oracle from 185.220.101.42 port 40112
+L4: Nov 24 14:10:34 prod-web-01 sshd[1103]: Invalid user postgres from 185.220.101.42 port 40118
+L5: Nov 24 14:10:38 prod-web-01 sshd[1104]: Invalid user admin from 185.220.101.42 port 40125
+L6: Nov 24 14:10:42 prod-web-01 sshd[1105]: Invalid user testuser from 185.220.101.42 port 40131</pre>
+            </div>
+            <div class="alert-item">
+              <div class="alert-head">
+                <span class="badge badge-medium">MEDIUM</span>
+                <strong>SP-SSH-003</strong> &mdash; Direct Root SSH Login Attempt
+                <span class="muted">(SSH &bull; 3 event(s) &bull; T1078.003 - Valid Accounts: Local Accounts)</span>
+              </div>
+              <p class="alert-desc">Authentication attempt targeting the privileged root account over SSH.</p>
+              <pre class="evidence">L7: Nov 24 14:10:48 prod-web-01 sshd[1106]: Failed password for root from 185.220.101.42 port 40140 ssh2
+L8: Nov 24 14:10:52 prod-web-01 sshd[1107]: Failed password for root from 185.220.101.42 port 40145 ssh2
+L9: Nov 24 14:10:56 prod-web-01 sshd[1108]: Failed password for root from 185.220.101.42 port 40152 ssh2</pre>
+            </div>
+            <div class="alert-item">
+              <div class="alert-head">
+                <span class="badge badge-medium">MEDIUM</span>
+                <strong>SP-WEB-004</strong> &mdash; Sensitive File &amp; Config Exposure Scan
+                <span class="muted">(WEB &bull; 1 event(s) &bull; T1595.003 - Active Scanning: Wordlist Scanning)</span>
+              </div>
+              <p class="alert-desc">Automated probe targeting hidden configuration, backup, or source control files.</p>
+              <pre class="evidence">L18: 185.220.101.42 - - [24/Nov/2026:14:12:40 +0000] &quot;GET /admin/config HTTP/1.1&quot; 404 162 &quot;-&quot; &quot;curl/8.0&quot;</pre>
+            </div>
+          </details>
+
+          <details>
+            <summary>SOC Playbook &amp; Containment Commands</summary>
+            <div class="playbook-box">
+              <ul><li>ESCALATE IMMEDIATELY (P1): Confirmed SSH login after brute-force from 185.220.101.42. Treat target account as compromised.</li><li>Terminate active SSH sessions for the affected user and rotate SSH keys/passwords.</li><li>Audit recent sudo history (~/.bash_history, /var/log/syslog) for persistence or lateral movement.</li><li>Block external offending IP 185.220.101.42 at host firewall / perimeter WAF.</li><li>Harden SSH: disable password authentication, enforce key-only login, and enable Fail2Ban.</li><li>Confirm .env, .git, and backup files are blocked at Nginx/Apache level (return 404/403).</li></ul>
+              <div class="cmd-wrap">
+                <pre class="commands">sudo pkill -KILL -u &lt;compromised_user&gt;  # Terminate active user sessions
+sudo passwd -l &lt;compromised_user&gt;       # Lock potentially compromised account
+sudo ufw deny from 185.220.101.42 to any comment &#x27;SentinelPulse block&#x27;
+sudo iptables -I INPUT -s 185.220.101.42 -j DROP
+sudo fail2ban-client set sshd banip 185.220.101.42</pre>
+              </div>
+            </div>
+          </details>
+        </article>
+        <article class="incident-card" data-severity="HIGH" data-search="45.155.205.9 multi-vector attack (4 rules triggered) from 45.155.205.9 t1190 - exploit public-facing application t1595 - active scanning t1595.002 - active scanning: vulnerability scanning t1595.003 - active scanning: wordlist scanning">
+          <div class="card-top">
+            <div>
+              <span class="badge badge-high">HIGH</span>
+              <span class="inc-id">INC-002</span>
+              <h3 class="inc-title">Multi-Vector Attack (4 Rules Triggered) from 45.155.205.9</h3>
+            </div>
+            <div class="risk-box">
+              <span class="risk-num">92</span>
+              <span class="risk-label">RISK / 100</span>
+            </div>
+          </div>
+
+          <p class="inc-summary">Detected 4 alert(s) across 2 kill-chain stage(s) (Reconnaissance, Exploitation / Initial Access). Threat Intel: MALICIOUS (Automated Web Vulnerability Scanner).</p>
+
+          <div class="meta-grid">
+            <div><strong>Source IP:</strong> <code>45.155.205.9</code></div>
+            <div><strong>Intel:</strong> MALICIOUS (92% conf) &bull; RU / AS49505</div>
+            <div><strong>Timeframe:</strong> 2026-11-24 14:10:40 &ndash; 14:11:08</div>
+            <div><strong>Alerts Triggered:</strong> 4</div>
+          </div>
+
+          <div class="kill-chain"><strong>Kill Chain:</strong> <span class="stage-chip">Reconnaissance</span> &rarr; <span class="stage-chip">Exploitation / Initial Access</span></div>
+          <div class="intel-tags"><span class="tag-chip">sqli-scanner</span> <span class="tag-chip">dir-enum</span> <span class="tag-chip">botnet</span></div>
+
+          <details open>
+            <summary>Triggered Rules &amp; Log Evidence (4)</summary>
+            
+            <div class="alert-item">
+              <div class="alert-head">
+                <span class="badge badge-high">HIGH</span>
+                <strong>SP-WEB-001</strong> &mdash; SQL Injection (SQLi) Probe Detected
+                <span class="muted">(WEB &bull; 2 event(s) &bull; T1190 - Exploit Public-Facing Application)</span>
+              </div>
+              <p class="alert-desc">HTTP request URI or query string contains SQL injection payload signatures.</p>
+              <pre class="evidence">L12: 45.155.205.9 - - [24/Nov/2026:14:11:05 +0000] &quot;GET /products?id=1%20UNION%20SELECT%20username,password%20FROM%20users HTTP/1.1&quot; 500 512 &quot;-&quot; &quot;sqlmap/1.8&quot;
+L13: 45.155.205.9 - - [24/Nov/2026:14:11:08 +0000] &quot;GET /products?id=1&#x27;%20OR%20&#x27;1&#x27;=&#x27;1 HTTP/1.1&quot; 200 2840 &quot;-&quot; &quot;sqlmap/1.8&quot;</pre>
+            </div>
+            <div class="alert-item">
+              <div class="alert-head">
+                <span class="badge badge-medium">MEDIUM</span>
+                <strong>SP-WEB-005</strong> &mdash; High-Rate 404 Directory Enumeration
+                <span class="muted">(WEB &bull; 8 event(s) &bull; T1595.002 - Active Scanning: Vulnerability Scanning)</span>
+              </div>
+              <p class="alert-desc">Rapid burst of HTTP 404 responses indicating automated scanner activity (e.g., Gobuster/Dirsearch).</p>
+              <pre class="evidence">L4: 45.155.205.9 - - [24/Nov/2026:14:10:40 +0000] &quot;GET /.env HTTP/1.1&quot; 404 162 &quot;-&quot; &quot;Mozilla/5.0&quot;
+L5: 45.155.205.9 - - [24/Nov/2026:14:10:42 +0000] &quot;GET /.git/config HTTP/1.1&quot; 404 162 &quot;-&quot; &quot;Gobuster/3.6&quot;
+L6: 45.155.205.9 - - [24/Nov/2026:14:10:44 +0000] &quot;GET /backup.sql HTTP/1.1&quot; 404 162 &quot;-&quot; &quot;Gobuster/3.6&quot;
+L7: 45.155.205.9 - - [24/Nov/2026:14:10:46 +0000] &quot;GET /phpinfo.php HTTP/1.1&quot; 404 162 &quot;-&quot; &quot;Gobuster/3.6&quot;
+L8: 45.155.205.9 - - [24/Nov/2026:14:10:48 +0000] &quot;GET /admin/config.php HTTP/1.1&quot; 404 162 &quot;-&quot; &quot;Gobuster/3.6&quot;</pre>
+            </div>
+            <div class="alert-item">
+              <div class="alert-head">
+                <span class="badge badge-medium">MEDIUM</span>
+                <strong>SP-WEB-004</strong> &mdash; Sensitive File &amp; Config Exposure Scan
+                <span class="muted">(WEB &bull; 6 event(s) &bull; T1595.003 - Active Scanning: Wordlist Scanning)</span>
+              </div>
+              <p class="alert-desc">Automated probe targeting hidden configuration, backup, or source control files.</p>
+              <pre class="evidence">L4: 45.155.205.9 - - [24/Nov/2026:14:10:40 +0000] &quot;GET /.env HTTP/1.1&quot; 404 162 &quot;-&quot; &quot;Mozilla/5.0&quot;
+L5: 45.155.205.9 - - [24/Nov/2026:14:10:42 +0000] &quot;GET /.git/config HTTP/1.1&quot; 404 162 &quot;-&quot; &quot;Gobuster/3.6&quot;
+L6: 45.155.205.9 - - [24/Nov/2026:14:10:44 +0000] &quot;GET /backup.sql HTTP/1.1&quot; 404 162 &quot;-&quot; &quot;Gobuster/3.6&quot;
+L7: 45.155.205.9 - - [24/Nov/2026:14:10:46 +0000] &quot;GET /phpinfo.php HTTP/1.1&quot; 404 162 &quot;-&quot; &quot;Gobuster/3.6&quot;
+L8: 45.155.205.9 - - [24/Nov/2026:14:10:48 +0000] &quot;GET /admin/config.php HTTP/1.1&quot; 404 162 &quot;-&quot; &quot;Gobuster/3.6&quot;</pre>
+            </div>
+            <div class="alert-item">
+              <div class="alert-head">
+                <span class="badge badge-low">LOW</span>
+                <strong>SP-WEB-006</strong> &mdash; Known Offensive Scanner User-Agent
+                <span class="muted">(WEB &bull; 9 event(s) &bull; T1595 - Active Scanning)</span>
+              </div>
+              <p class="alert-desc">HTTP request originated from a known automated security scanner User-Agent string.</p>
+              <pre class="evidence">L5: 45.155.205.9 - - [24/Nov/2026:14:10:42 +0000] &quot;GET /.git/config HTTP/1.1&quot; 404 162 &quot;-&quot; &quot;Gobuster/3.6&quot;
+L6: 45.155.205.9 - - [24/Nov/2026:14:10:44 +0000] &quot;GET /backup.sql HTTP/1.1&quot; 404 162 &quot;-&quot; &quot;Gobuster/3.6&quot;
+L7: 45.155.205.9 - - [24/Nov/2026:14:10:46 +0000] &quot;GET /phpinfo.php HTTP/1.1&quot; 404 162 &quot;-&quot; &quot;Gobuster/3.6&quot;
+L8: 45.155.205.9 - - [24/Nov/2026:14:10:48 +0000] &quot;GET /admin/config.php HTTP/1.1&quot; 404 162 &quot;-&quot; &quot;Gobuster/3.6&quot;
+L9: 45.155.205.9 - - [24/Nov/2026:14:10:50 +0000] &quot;GET /wp-login.php HTTP/1.1&quot; 404 162 &quot;-&quot; &quot;Gobuster/3.6&quot;</pre>
+            </div>
+          </details>
+
+          <details>
+            <summary>SOC Playbook &amp; Containment Commands</summary>
+            <div class="playbook-box">
+              <ul><li>Block external offending IP 45.155.205.9 at host firewall / perimeter WAF.</li><li>Review WAF/reverse-proxy logs for HTTP 200/500 responses on injection/LFI payloads.</li><li>Verify parameterized queries (SQLi) and strict path sanitization (LFI) in application code.</li><li>Confirm .env, .git, and backup files are blocked at Nginx/Apache level (return 404/403).</li></ul>
+              <div class="cmd-wrap">
+                <pre class="commands">sudo ufw deny from 45.155.205.9 to any comment &#x27;SentinelPulse block&#x27;
+sudo iptables -I INPUT -s 45.155.205.9 -j DROP</pre>
+              </div>
+            </div>
+          </details>
+        </article>
+        <article class="incident-card" data-severity="HIGH" data-search="194.26.135.71 multi-vector attack (2 rules triggered) from 194.26.135.71 t1005 - data from local system t1595 - active scanning">
+          <div class="card-top">
+            <div>
+              <span class="badge badge-high">HIGH</span>
+              <span class="inc-id">INC-003</span>
+              <h3 class="inc-title">Multi-Vector Attack (2 Rules Triggered) from 194.26.135.71</h3>
+            </div>
+            <div class="risk-box">
+              <span class="risk-num">52</span>
+              <span class="risk-label">RISK / 100</span>
+            </div>
+          </div>
+
+          <p class="inc-summary">Detected 2 alert(s) across 2 kill-chain stage(s) (Exploitation / Collection, Reconnaissance). Threat Intel: SUSPICIOUS (Bulletproof Hosting / Recon Scanner).</p>
+
+          <div class="meta-grid">
+            <div><strong>Source IP:</strong> <code>194.26.135.71</code></div>
+            <div><strong>Intel:</strong> SUSPICIOUS (78% conf) &bull; NL / AS202422</div>
+            <div><strong>Timeframe:</strong> 2026-11-24 14:11:35 &ndash; 14:11:38</div>
+            <div><strong>Alerts Triggered:</strong> 2</div>
+          </div>
+
+          <div class="kill-chain"><strong>Kill Chain:</strong> <span class="stage-chip">Exploitation / Collection</span> &rarr; <span class="stage-chip">Reconnaissance</span></div>
+          <div class="intel-tags"><span class="tag-chip">recon</span> <span class="tag-chip">masscan</span> <span class="tag-chip">lfi-probe</span></div>
+
+          <details open>
+            <summary>Triggered Rules &amp; Log Evidence (2)</summary>
+            
+            <div class="alert-item">
+              <div class="alert-head">
+                <span class="badge badge-high">HIGH</span>
+                <strong>SP-WEB-003</strong> &mdash; Path Traversal / LFI Attempt
+                <span class="muted">(WEB &bull; 2 event(s) &bull; T1005 - Data from Local System)</span>
+              </div>
+              <p class="alert-desc">Request attempts directory traversal or local file inclusion targeting sensitive OS files.</p>
+              <pre class="evidence">L14: 194.26.135.71 - - [24/Nov/2026:14:11:35 +0000] &quot;GET /download?file=../../../../etc/passwd HTTP/1.1&quot; 403 210 &quot;-&quot; &quot;Nuclei - Open-source project&quot;
+L15: 194.26.135.71 - - [24/Nov/2026:14:11:38 +0000] &quot;GET /view?tpl=%2e%2e%2f%2e%2e%2fetc/shadow HTTP/1.1&quot; 403 210 &quot;-&quot; &quot;Nuclei - Open-source project&quot;</pre>
+            </div>
+            <div class="alert-item">
+              <div class="alert-head">
+                <span class="badge badge-low">LOW</span>
+                <strong>SP-WEB-006</strong> &mdash; Known Offensive Scanner User-Agent
+                <span class="muted">(WEB &bull; 2 event(s) &bull; T1595 - Active Scanning)</span>
+              </div>
+              <p class="alert-desc">HTTP request originated from a known automated security scanner User-Agent string.</p>
+              <pre class="evidence">L14: 194.26.135.71 - - [24/Nov/2026:14:11:35 +0000] &quot;GET /download?file=../../../../etc/passwd HTTP/1.1&quot; 403 210 &quot;-&quot; &quot;Nuclei - Open-source project&quot;
+L15: 194.26.135.71 - - [24/Nov/2026:14:11:38 +0000] &quot;GET /view?tpl=%2e%2e%2f%2e%2e%2fetc/shadow HTTP/1.1&quot; 403 210 &quot;-&quot; &quot;Nuclei - Open-source project&quot;</pre>
+            </div>
+          </details>
+
+          <details>
+            <summary>SOC Playbook &amp; Containment Commands</summary>
+            <div class="playbook-box">
+              <ul><li>Block external offending IP 194.26.135.71 at host firewall / perimeter WAF.</li><li>Review WAF/reverse-proxy logs for HTTP 200/500 responses on injection/LFI payloads.</li><li>Verify parameterized queries (SQLi) and strict path sanitization (LFI) in application code.</li></ul>
+              <div class="cmd-wrap">
+                <pre class="commands">sudo ufw deny from 194.26.135.71 to any comment &#x27;SentinelPulse block&#x27;
+sudo iptables -I INPUT -s 194.26.135.71 -j DROP</pre>
+              </div>
+            </div>
+          </details>
+        </article>
+        <article class="incident-card" data-severity="HIGH" data-search="91.240.118.168 ssh brute-force attempt (91.240.118.168) t1110.001 - brute force: password guessing">
+          <div class="card-top">
+            <div>
+              <span class="badge badge-high">HIGH</span>
+              <span class="inc-id">INC-004</span>
+              <h3 class="inc-title">SSH Brute-Force Attempt (91.240.118.168)</h3>
+            </div>
+            <div class="risk-box">
+              <span class="risk-num">45</span>
+              <span class="risk-label">RISK / 100</span>
+            </div>
+          </div>
+
+          <p class="inc-summary">Detected 1 alert(s) across 1 kill-chain stage(s) (Credential Access). Threat Intel: MALICIOUS (Known Credential Stuffing Infrastructure).</p>
+
+          <div class="meta-grid">
+            <div><strong>Source IP:</strong> <code>91.240.118.168</code></div>
+            <div><strong>Intel:</strong> MALICIOUS (89% conf) &bull; BG / AS209605</div>
+            <div><strong>Timeframe:</strong> 2026-11-24 14:12:00 &ndash; 14:12:16</div>
+            <div><strong>Alerts Triggered:</strong> 1</div>
+          </div>
+
+          <div class="kill-chain"><strong>Kill Chain:</strong> <span class="stage-chip">Credential Access</span></div>
+          <div class="intel-tags"><span class="tag-chip">ssh-spray</span> <span class="tag-chip">password-guessing</span></div>
+
+          <details open>
+            <summary>Triggered Rules &amp; Log Evidence (1)</summary>
+            
+            <div class="alert-item">
+              <div class="alert-head">
+                <span class="badge badge-high">HIGH</span>
+                <strong>SP-SSH-001</strong> &mdash; SSH Brute-Force Attempt
+                <span class="muted">(SSH &bull; 5 event(s) &bull; T1110.001 - Brute Force: Password Guessing)</span>
+              </div>
+              <p class="alert-desc">Multiple failed SSH authentication attempts from a single source IP within a short time window.</p>
+              <pre class="evidence">L12: Nov 24 14:12:00 prod-web-01 sshd[1201]: Failed password for ubuntu from 91.240.118.168 port 53210 ssh2
+L13: Nov 24 14:12:04 prod-web-01 sshd[1202]: Failed password for ubuntu from 91.240.118.168 port 53215 ssh2
+L14: Nov 24 14:12:08 prod-web-01 sshd[1203]: Failed password for ubuntu from 91.240.118.168 port 53220 ssh2
+L15: Nov 24 14:12:12 prod-web-01 sshd[1204]: Failed password for ubuntu from 91.240.118.168 port 53225 ssh2
+L16: Nov 24 14:12:16 prod-web-01 sshd[1205]: Failed password for ubuntu from 91.240.118.168 port 53230 ssh2</pre>
+            </div>
+          </details>
+
+          <details>
+            <summary>SOC Playbook &amp; Containment Commands</summary>
+            <div class="playbook-box">
+              <ul><li>Block external offending IP 91.240.118.168 at host firewall / perimeter WAF.</li><li>Harden SSH: disable password authentication, enforce key-only login, and enable Fail2Ban.</li></ul>
+              <div class="cmd-wrap">
+                <pre class="commands">sudo ufw deny from 91.240.118.168 to any comment &#x27;SentinelPulse block&#x27;
+sudo iptables -I INPUT -s 91.240.118.168 -j DROP
+sudo fail2ban-client set sshd banip 91.240.118.168</pre>
+              </div>
+            </div>
+          </details>
+        </article>
+        <article class="incident-card" data-severity="MEDIUM" data-search="103.145.254.11 cross-site scripting (xss) probe detected (103.145.254.11) t1059.007 - command and scripting interpreter: javascript">
+          <div class="card-top">
+            <div>
+              <span class="badge badge-medium">MEDIUM</span>
+              <span class="inc-id">INC-005</span>
+              <h3 class="inc-title">Cross-Site Scripting (XSS) Probe Detected (103.145.254.11)</h3>
+            </div>
+            <div class="risk-box">
+              <span class="risk-num">25</span>
+              <span class="risk-label">RISK / 100</span>
+            </div>
+          </div>
+
+          <p class="inc-summary">Detected 1 alert(s) across 1 kill-chain stage(s) (Exploitation / Execution). Threat Intel: SUSPICIOUS (Exposed Proxy / Automated Crawler).</p>
+
+          <div class="meta-grid">
+            <div><strong>Source IP:</strong> <code>103.145.254.11</code></div>
+            <div><strong>Intel:</strong> SUSPICIOUS (70% conf) &bull; SG / AS139040</div>
+            <div><strong>Timeframe:</strong> 2026-11-24 14:12:20 &ndash; 14:12:25</div>
+            <div><strong>Alerts Triggered:</strong> 1</div>
+          </div>
+
+          <div class="kill-chain"><strong>Kill Chain:</strong> <span class="stage-chip">Exploitation / Execution</span></div>
+          <div class="intel-tags"><span class="tag-chip">xss-probe</span> <span class="tag-chip">crawler</span></div>
+
+          <details open>
+            <summary>Triggered Rules &amp; Log Evidence (1)</summary>
+            
+            <div class="alert-item">
+              <div class="alert-head">
+                <span class="badge badge-medium">MEDIUM</span>
+                <strong>SP-WEB-002</strong> &mdash; Cross-Site Scripting (XSS) Probe Detected
+                <span class="muted">(WEB &bull; 2 event(s) &bull; T1059.007 - Command and Scripting Interpreter: JavaScript)</span>
+              </div>
+              <p class="alert-desc">HTTP request contains reflected or DOM-based XSS payload patterns.</p>
+              <pre class="evidence">L16: 103.145.254.11 - - [24/Nov/2026:14:12:20 +0000] &quot;GET /search?q=&lt;script&gt;alert(document.cookie)&lt;/script&gt; HTTP/1.1&quot; 200 1420 &quot;-&quot; &quot;Mozilla/5.0&quot;
+L17: 103.145.254.11 - - [24/Nov/2026:14:12:25 +0000] &quot;GET /profile?bio=&lt;img%20src=x%20onerror=alert(1)&gt; HTTP/1.1&quot; 200 1420 &quot;-&quot; &quot;Mozilla/5.0&quot;</pre>
+            </div>
+          </details>
+
+          <details>
+            <summary>SOC Playbook &amp; Containment Commands</summary>
+            <div class="playbook-box">
+              <ul><li>Block external offending IP 103.145.254.11 at host firewall / perimeter WAF.</li><li>Review WAF/reverse-proxy logs for HTTP 200/500 responses on injection/LFI payloads.</li><li>Verify parameterized queries (SQLi) and strict path sanitization (LFI) in application code.</li></ul>
+              <div class="cmd-wrap">
+                <pre class="commands">sudo ufw deny from 103.145.254.11 to any comment &#x27;SentinelPulse block&#x27;
+sudo iptables -I INPUT -s 103.145.254.11 -j DROP</pre>
+              </div>
+            </div>
+          </details>
+        </article>
+    </section>
+  </div>
+
+  <script>
+    function filterIncidents() {
+      const query = document.getElementById('searchInput').value.toLowerCase();
+      const sev = document.getElementById('sevFilter').value;
+      document.querySelectorAll('.incident-card').forEach(card => {
+        const matchesText = card.dataset.search.includes(query);
+        const matchesSev = sev === 'ALL' || card.dataset.severity === sev;
+        card.style.display = (matchesText && matchesSev) ? 'block' : 'none';
+      });
+    }
+  </script>
+</body>
+</html>
