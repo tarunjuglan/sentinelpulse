@@ -91,3 +91,4 @@ sentinelpulse/
 │   └── log_generator.py         # Synthetic multi-stage attack log generator
 └── tests/test_sentinelpulse.py  # Unit & end-to-end tests
 ```
+.........
